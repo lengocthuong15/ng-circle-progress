@@ -45,6 +45,7 @@ export interface CircleProgressOptionsInterface {
     animateTitle?: boolean;
     animateSubtitle?: boolean;
     animationDuration?: number;
+    showDot?: boolean;
     showTitle?: boolean;
     showSubtitle?: boolean;
     showUnits?: boolean;
@@ -102,6 +103,7 @@ export class CircleProgressOptions implements CircleProgressOptionsInterface {
     animateSubtitle = false;
     animationDuration = 500;
     showTitle = true;
+    showDot = false;
     showSubtitle = true;
     showUnits = true;
     showImage = false;
@@ -155,6 +157,14 @@ export class CircleProgressOptions implements CircleProgressOptionsInterface {
                     [attr.fill]="svg.circle.fill"
                     [attr.stroke]="svg.circle.stroke"
                     [attr.stroke-width]="svg.circle.strokeWidth"/>
+            <circle *ngIf="options.showDot"
+                    [style.display]="_disPlayDot"
+                    [attr.cx]="svg.endDot.cx"
+                    [attr.cy]="svg.endDot.cy"
+                    [attr.r]="svg.endDot.r"
+                    [attr.fill]="svg.endDot.fill"
+                    [attr.stroke]="svg.endDot.stroke"
+                    [attr.stroke-width]="svg.endDot.strokeWidth"/>
             <ng-container *ngIf="+options.percent!==0 || options.showZeroOuterStroke">
                 <path *ngIf="!options.outerStrokeGradient"
                         [attr.d]="svg.path.d"
@@ -264,6 +274,7 @@ export class CircleProgressComponent implements OnChanges, OnInit, OnDestroy {
     @Input() animationDuration: number;
 
     @Input() showTitle: boolean;
+    @Input() showDot: boolean;
     @Input() showSubtitle: boolean;
     @Input() showUnits: boolean;
     @Input() showImage: boolean;
@@ -293,6 +304,7 @@ export class CircleProgressComponent implements OnChanges, OnInit, OnDestroy {
     defaultOptions: CircleProgressOptions = new CircleProgressOptions();
     _lastPercent: number = 0;
     _gradientUUID: string = null;
+    _disPlayDot: string = 'block';
     render = () => {
 
         this.applyOptions();
@@ -445,11 +457,23 @@ export class CircleProgressComponent implements OnChanges, OnInit, OnDestroy {
             this._gradientUUID = this.uuid();
         }
         // Bring it all together
+        var angle = 360 * this.options.percent / 100;
+        var angleRad = angle *  Math.PI / 180;
+        var xPos = this.options.radius * Math.sin(angleRad);
+        var yPos = this.options.radius * Math.cos(angleRad);
         this.svg = {
             viewBox: `0 0 ${boxSize} ${boxSize}`,
             // Set both width and height to '100%' if it's responsive
             width: this.options.responsive ? '100%' : boxSize,
             height: this.options.responsive ? '100%' : boxSize,
+            endDot: {
+                cx: centre.x + xPos,
+                cy: centre.y - yPos,
+                r: this.options.outerStrokeWidth,
+                fill: this.options.outerStrokeColor,
+                stroke: this.options.outerStrokeColor,
+                strokeWidth: this.options.outerStrokeWidth,
+            },
             backgroundCircle: {
                 cx: centre.x,
                 cy: centre.y,
@@ -537,27 +561,38 @@ export class CircleProgressComponent implements OnChanges, OnInit, OnDestroy {
         }
         return { times: times, step: step, interval: interval };
     };
+
+    unsubscribe__timerSubscription = () => {
+        this._timerSubscription.unsubscribe();
+        this._disPlayDot = 'block';
+    };
+
     animate = (previousPercent: number, currentPercent: number) => {
+        //_disPlayDot
+        this._disPlayDot = 'none';
         if (this._timerSubscription && !this._timerSubscription.closed) {
-            this._timerSubscription.unsubscribe();
+            this.unsubscribe__timerSubscription();
         }
         let fromPercent = this.options.startFromZero ? 0 : previousPercent;
         let toPercent = currentPercent;
         let { step: step, interval: interval } = this.getAnimationParameters(fromPercent, toPercent);
         let count = fromPercent;
+        console.log("fromPercent = " + fromPercent);
+        console.log("toPercent = " + toPercent);
         if (fromPercent < toPercent) {
             this._timerSubscription = timer(0, interval).subscribe(() => {
+                console.log("Count = " + count);
                 count += step;
                 if (count <= toPercent) {
                     if (!this.options.animateTitle && !this.options.animateSubtitle && count >= 100) {
                         this.draw(toPercent);
-                        this._timerSubscription.unsubscribe();
+                        this.unsubscribe__timerSubscription();
                     } else {
                         this.draw(count);
                     }
                 } else {
                     this.draw(toPercent);
-                    this._timerSubscription.unsubscribe();
+                    this.unsubscribe__timerSubscription();
                 }
             });
         } else {
@@ -566,13 +601,13 @@ export class CircleProgressComponent implements OnChanges, OnInit, OnDestroy {
                 if (count >= toPercent) {
                     if (!this.options.animateTitle && !this.options.animateSubtitle && toPercent >= 100) {
                         this.draw(toPercent);
-                        this._timerSubscription.unsubscribe();
+                        this.unsubscribe__timerSubscription();
                     } else {
                         this.draw(count);
                     }
                 } else {
                     this.draw(toPercent);
-                    this._timerSubscription.unsubscribe();
+                    this.unsubscribe__timerSubscription();
                 }
             });
         }

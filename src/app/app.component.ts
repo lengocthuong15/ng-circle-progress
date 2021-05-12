@@ -21,6 +21,7 @@ export class AppComponent {
         { name: 'maxPercent', type: 'range', min: 50, max: 1000, step: 10 },
         { name: 'toFixed', type: 'range', min: 0, max: 5, step: 1 },
         { name: 'showTitle', type: 'checkbox' },
+        { name: 'showDot', type: 'checkbox' },
         { name: 'showUnits', type: 'checkbox' },
         { name: 'showSubtitle', type: 'checkbox' },
         { name: 'showImage', type: 'checkbox' },
