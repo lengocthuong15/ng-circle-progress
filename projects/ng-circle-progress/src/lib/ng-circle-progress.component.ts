@@ -343,7 +343,11 @@ export class CircleProgressComponent implements OnChanges, OnInit, OnDestroy {
         // circle percent shouldn't be greater than 100%.
         let circlePercent = (percent > 100) ? 100 : percent;
         // determine box size
-        let boxSize = this.options.radius * 2 + this.options.outerStrokeWidth * 2;
+        let expander = 0;
+        if (this.showDot) {            
+            expander = this.options.outerStrokeWidth;
+        }
+        let boxSize = this.options.radius * 2 + this.options.outerStrokeWidth * 2 + expander;
         if (this.options.showBackground) {
             boxSize += (this.options.backgroundStrokeWidth * 2 + this.max(0, this.options.backgroundPadding * 2));
         }
